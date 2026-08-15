@@ -1,0 +1,15 @@
+# Python 运行时产物
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 训练器的临时/运行状态文件（不是源码，也不是有用的数据）
+games/_tmp_*
+games/_autosave.pgn
+games/**/_seen_*.txt
+
+# 编辑器 / 系统
+.DS_Store
+*.swp
