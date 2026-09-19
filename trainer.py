@@ -994,9 +994,12 @@ ADVISOR_HELP = """
   small/big/huge 棋盘三档大小
   board     重新显示棋盘
   eval      当前评估
+  fen       打印当前局面的 FEN（可贴出来或塞进 cct 分析）
+  cct       列出「我所有的将军/吃子/威胁」——先自己口报，再敲这个对答案
   moves     列出所有合法着法
   fen <FEN> 从指定局面开始
   save      把到目前为止的棋谱存成 PGN
+  resign    认输结束（可存谱、可直接复盘）
   quit      退出
 """
 
@@ -1156,6 +1159,20 @@ def advisor_mode():
         if low in ("quit", "exit", "q"):
             print("再见！")
             return
+        if low in ("resign", "认输"):
+            result = "0-1" if me == WHITE else "1-0"
+            print("你认输了（判负 %s）。" % result)
+            if log and ask_yes("要把这盘存下来并复盘吗？(Y/n) ", True):
+                path = write_pgn(time.strftime("advice_%Y%m%d_%H%M%S.pgn"),
+                                 make_pgn(log, start_fen, result))
+                print("棋谱已保存：%s" % path)
+                if ask_yes("现在复盘分析吗？(Y/n) ", True):
+                    who, side = ask_student()
+                    review_moves(start_fen, [x[0] for x in log],
+                                 AUTO_REVIEW_SECS, review_name(path),
+                                 student=who, student_side=side,
+                                 result=result)
+            return
         if low in ("help", "h", "?"):
             print(ADVISOR_HELP)
             continue
@@ -1271,6 +1288,10 @@ def advisor_mode():
             pending = True
             print("  已重新开局。")
             continue
+        if low in ("cct", "cct"):
+            import cct as cct_mod
+            print(cct_mod.report(b, LANG))
+            continue
         if low == "top" or low.startswith("top "):
             try:
                 k = int(low.split()[1])
@@ -1318,6 +1339,9 @@ def advisor_mode():
             pending = True
             autosave(log, start_fen)
             print("  已收回 %d 步。" % n)
+            continue
+        if low == "fen":
+            print("  " + b.fen())        # 打印当前局面，可贴给别处或 cct
             continue
         if low.startswith("fen "):
             try:
@@ -1850,6 +1874,59 @@ def drill_mode(level=5):
     s.run()
 
 
+def cct_mode(arg=""):
+    """CCT 扫描练习：给个局面，先自己口报将军/吃子/威胁，再看答案。
+
+    用法：
+      python3 trainer.py cct                     从起始局面，之后可 fen/着法 切换
+      python3 trainer.py cct "<FEN>"             直接看某个局面
+    循环里：报着法推进局面；打 cct 看答案；fen <FEN> 换局面；quit 退出。
+    """
+    import cct as cct_mod
+    HELP = ("\n  这个模式帮你练「落子前先扫一遍」。用法：\n"
+            "    回车 或 cct   ——  看当前局面的 将军/吃子/威胁（答案）\n"
+            "    fen <FEN>     ——  换一个局面来练（把 FEN 贴在 fen 后面）\n"
+            "    e4 / Nf3      ——  报一步着法，推进局面\n"
+            "    board         ——  重看棋盘\n"
+            "    quit          ——  退出\n"
+            "  练法：先自己心里报「我有哪些将军、吃子、威胁」，再按回车对答案。\n")
+    b = Board(arg.strip()) if arg.strip() else Board()
+    print("CCT 扫描练习。先自己口报「将军/吃子/威胁」，再【按回车】看答案。")
+    print("换局面用 fen <FEN>；打 help 看全部用法；quit 退出。\n")
+    show(b, b.side)
+    print("（先自己报，然后直接按回车看答案。）")
+    while True:
+        line = ask("报完按回车看答案（或 fen <FEN> / 着法 / help / quit）: ").strip()
+        low = line.lower()
+        if low in QUIT_WORDS:
+            return
+        if low in ("help", "h", "?", "帮助"):
+            print(HELP); continue
+        if low == "cct" or low == "":
+            print(cct_mod.report(b, LANG)); print()
+            continue
+        if low == "fen":                    # 光打 fen = 显示当前 FEN
+            print("  当前 FEN：%s" % b.fen())
+            print("  （想换局面：fen 后面加上 FEN 串，例如 fen %s）" % b.fen())
+            continue
+        if low.startswith("fen "):
+            try:
+                b = Board(line[4:].strip()); show(b, b.side)
+                print("（先自己报，再按回车看答案。）")
+            except Exception:
+                print("  这个 FEN 读不了，检查一下有没有贴全。")
+            continue
+        if low in ("board", "b"):
+            show(b, b.side); continue
+        m = b.parse_move(line)
+        if m is None:
+            print("  没看懂「%s」。直接按回车看答案；换局面用 fen <FEN>；"
+                  "退出打 quit；不清楚打 help。" % line)
+            continue
+        b.make(m)
+        show(b, b.side)
+
+
 # ---------------------------------------------------------------------- 菜单
 def choose_level(default=5):
     print("\n难度：")
@@ -1903,6 +1980,8 @@ def main():
             if len(args) > 2:                 # 一次给了好几个棋谱
                 return review_batch(args[1:])
             return review_mode(args[1] if len(args) > 1 else None)
+        if cmd == "cct":
+            return cct_mode(" ".join(args[1:]))
     while True:
         print(MENU)
         c = ask("选择: ").lower()

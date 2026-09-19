@@ -104,6 +104,19 @@ def test_review_name():
     print("复盘报告命名 ok")
 
 
+def test_cct():
+    """CCT 扫描：将军/吃子/威胁都数得出，且不改棋盘。"""
+    import cct
+    from board import Board
+    fen = "N1bk3r/pp1p1ppp/2n5/8/8/2n5/PPP2PPP/R3KB1R b KQ - 0 12"
+    b = Board(fen)
+    assert "Re8+" in cct.checks(b), "该有的将军没列出"
+    rep = cct.report(b)
+    assert "CCT" in rep and "将军" in rep
+    assert b.fen() == fen, "CCT 把棋盘弄坏了"
+    print("CCT 扫描主路径 ok")
+
+
 def test_blind_sources():
     """盲区训练取局面的两条路。"""
     import random
@@ -119,7 +132,7 @@ def test_blind_sources():
 
 
 def main():
-    for fn in (test_decided_boundary, test_review_name, test_review,
+    for fn in (test_decided_boundary, test_review_name, test_cct, test_review,
                test_review_with_profile, test_advise_levels,
                test_blind_sources):
         fn()
