@@ -1,0 +1,10 @@
+[Event "训练对局"]
+[Site "本地"]
+[Date "2026.11.06"]
+[White "我"]
+[Black "引擎 L5"]
+[Result "1-0"]
+[FEN "r3k2r/ppp2ppp/8/4p3/4P3/2N5/PPP2PPP/R3K2R w KQkq - 0 1"]
+[SetUp "1"]
+
+1. O-O-O c6 2. Rd2 Rd8 3. Rxd8+ Kxd8 4. Rd1+ Ke7 5. Kd2 h6 6. Ke3 Rf8 7. Ne2 Ra8 8. Ng3 g6 9. Rd3 h5 10. Rb3 b5 11. Rc3 Rc8 12. f4 exf4+ 13. Kxf4 c5 14. Rd3 Rg8 15. Rd5 Rd8 16. Rxd8 Kxd8 17. Ke5 Kd7 18. Kd5 h4 19. Ne2 c4 20. Nd4 a6 21. Kc5 g5 22. Kb6 c3 23. bxc3 Kc8 24. Kxa6 Kd7 25. Kxb5 Kd8 26. a4 Kc8 27. a5 h3 28. g4 Kb8 29. c4 Kb7 30. c5 Kb8 31. c6 Kc7 32. a6 f5 33. exf5 Kd8 34. a7 Kc8 35. a8=Q+ Kc7 36. Qb7+ Kd6 37. Qd7+ Ke5 38. c7 Ke4 39. c8=Q Kf4 40. Ne6+ Ke4 41. Qc4+ Ke5 42. Qdd5+ Kf6 43. Qcd4+ Ke7 44. Qd7# 1-0

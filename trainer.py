@@ -1761,6 +1761,7 @@ def blindspot_mode(lang=None):
 
     got = total = done = tries = 0
     q_ok = q_n = 0
+    cat_stats = {0: [0, 0], 1: [0, 0], 2: [0, 0]}   # 按类别记 [对, 共]
 
     def report():
         if not q_n:
@@ -1793,17 +1794,32 @@ def blindspot_mode(lang=None):
             if pool_key and seen_now:
                 save_seen(pool_key, load_seen(pool_key) | seen_now)
             report()
+            _log_blind(cat_stats)
             return
         got += res[0]
         total += res[1]
         q_n += 1
+        if which in cat_stats:
+            cat_stats[which][1] += 1
         if res[0] >= res[1]:
             q_ok += 1
+            if which in cat_stats:
+                cat_stats[which][0] += 1
     if pool_key and seen_now:
         save_seen(pool_key, load_seen(pool_key) | seen_now)
     if q_n:
         report()
         print(T("poor") if got < total * 0.7 else T("good"))
+    _log_blind(cat_stats)
+
+
+def _log_blind(cat_stats):
+    """把这次盲区训练按类别记进日志（没做题不记）。"""
+    try:
+        import blind_log
+        blind_log.record(cat_stats)
+    except Exception:
+        pass
 
 
 # ------------------------------------------------------------------ 战术题
@@ -1859,19 +1875,46 @@ def puzzle_mode(level=5):
 
 # ------------------------------------------------------------------ 残局训练
 def drill_mode(level=5):
-    print("\n可选残局：")
-    for i, (_fen, name, goal, side) in enumerate(puzzle_db.DRILLS, 1):
-        print("  %2d. %-24s 目标:%s  你执%s"
+    items = list(puzzle_db.DRILLS) + list(getattr(puzzle_db, "CONVERT", []))
+    print("\n可选残局 / 转化：")
+    for i, (_fen, name, goal, side) in enumerate(items, 1):
+        print("  %2d. %-30s 目标:%s  你执%s"
               % (i, name, "取胜" if goal == "win" else "守和",
                  "白" if side == "w" else "黑"))
     c = ask("选一个 (回车随机): ")
     try:
-        item = puzzle_db.DRILLS[int(c) - 1]
+        item = items[int(c) - 1]
     except (ValueError, IndexError):
-        item = random.choice(puzzle_db.DRILLS)
+        item = random.choice(items)
     fen, name, goal, side = item
     s = Session(fen, WHITE if side == "w" else BLACK, level, True, goal, name)
     s.run()
+
+
+def study_mode():
+    """实战研究局面：逐个摆出来，先自己想，回车看答案。"""
+    import puzzles
+    study = getattr(puzzles, "STUDY", [])
+    if not study:
+        print("还没有研究局面。")
+        return
+    print("\n=== 实战研究局面（来自 Jeremy 的对局）===")
+    print("每题先自己想最佳着法，再按回车看答案。打 quit 退出。\n")
+    for i, (fen, side, prompt, best, why) in enumerate(study, 1):
+        try:
+            b = Board(fen)
+        except Exception:
+            continue
+        who = "白方" if side == "w" else "黑方"
+        print("—— 第 %d/%d 题 ——（轮到%s）" % (i, len(study), who))
+        show(b, WHITE if side == "w" else BLACK)
+        print("  " + prompt)
+        ans = ask("  想好了按回车看答案（quit 退出）: ").strip().lower()
+        if ans in QUIT_WORDS:
+            return
+        print("  ▶ 最佳着法：%s" % best)
+        print("  %s\n" % why)
+    print("研究局面看完了。")
 
 
 def cct_mode(arg=""):
@@ -1936,15 +1979,28 @@ def choose_level(default=5):
     return default if v is None else int(v)
 
 
-def play_mode():
+def play_mode(start=None):
+    """对弈。start 给了 FEN 就从那个局面开始——用来把优势局面打出来练转化。"""
+    start_fen = START_FEN
+    if start and start.strip():
+        try:
+            Board(start.strip()).legal_moves()
+            start_fen = start.strip()
+            print("从指定局面开始：%s" % start_fen)
+        except Exception:
+            print("这个 FEN 读不了，改从开局开始。")
     level = choose_level()
-    human = ask_side("你执白还是黑？(w/b/r 随机, 回车 = 白): ")
+    default_side = WHITE
+    if start_fen != START_FEN:
+        default_side = Board(start_fen).side      # 默认执轮到走的那方
+    human = ask_side("你执白还是黑？(w/b/r 随机, 回车 = %s): "
+                     % ("白" if default_side == WHITE else "黑"), default_side)
     if human is None:
         return
     coach = ask_yes("开启实时教练点评？(Y/n): ", True)
     if coach is None:
         return
-    Session(START_FEN, human, level, coach).run()
+    Session(start_fen, human, level, coach).run()
 
 
 MENU = """
@@ -1965,10 +2021,14 @@ def main():
     if args:
         cmd = args[0].lower()
         if cmd.startswith("play"):
-            return play_mode()
+            return play_mode(" ".join(args[1:]) if len(args) > 1 else None)
         if cmd.startswith("adv") or cmd.startswith("coach") or \
                 cmd.startswith("assist"):
             return advisor_mode()
+        if cmd.startswith("blindlog") or cmd.startswith("日志"):
+            import blind_log
+            print(blind_log.report())
+            return
         if cmd.startswith("blind") or cmd.startswith("盲"):
             lang = args[1].lower()[:2] if len(args) > 1 else None
             return blindspot_mode(lang)
@@ -1982,6 +2042,8 @@ def main():
             return review_mode(args[1] if len(args) > 1 else None)
         if cmd == "cct":
             return cct_mode(" ".join(args[1:]))
+        if cmd.startswith("study") or cmd.startswith("研究"):
+            return study_mode()
     while True:
         print(MENU)
         c = ask("选择: ").lower()

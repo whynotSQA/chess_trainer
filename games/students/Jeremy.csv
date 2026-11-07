@@ -15,3 +15,8 @@ date,color,result,moves,acpl,inaccuracies,mistakes,blunders,moves_per_blunder,ha
 2026-09-08,白,0-1,28,35,7,2,2,14.0,2,2,,,1,review_jvhunter.txt
 2026-09-08,黑,0-1,37,15,2,3,0,,,,,1,1,review_jvelijah.txt
 2026-09-08,白,1-0,29,23,3,2,1,29.0,,,,,,review_jvelijah2.txt
+2026-09-18,白,1-0,28,74,5,2,4,7.0,,,,1,,review_advice_20260918_192041.txt
+2026-09-28,白,1-0,49,68,8,1,7,7.0,,,,,,review_advice_20260928_203807.txt
+2026-11-04,白,0-1,41,36,6,3,4,10.2,,,,1,,review_jvgeorge.txt
+2026-11-04,白,0-1,37,28,3,1,1,37.0,,,,,,review_jvkanata.txt
+2026-11-06,白,1-0,15,13,3,0,0,,,,,,,review_game_20261106_154102.txt
